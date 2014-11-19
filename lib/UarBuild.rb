@@ -27,30 +27,30 @@ module UarBuild
     end
 
     def update_custom_json(stack_settings, build_version)
-      p "Build Version: " + build_version
+      p "New Build Version: " + build_version
       print "\n"
-      p "Stack Settings:"
-      p stack_settings
-      print "\n"
-      #p "Available Keys:"
-      #PP.pp(stack_settings.keys)
-      #p "Custom JSON:"
+
       stack_id = stack_settings.fetch(:stack_id)
       custom_json_string = stack_settings.fetch(:custom_json)
       p "Custom JSON String:"
       p custom_json_string
       print "\n"
+      
       custom_json = JSON.parse(custom_json_string)
+      #p "Current build version"
       #p custom_json['deploy']['kc']['local_version']
       custom_json['deploy']['kc']['local_version'] = build_version
+      #p "New build version"
       #p custom_json['deploy']['kc']['local_version']
       p "Custom JSON"
       p custom_json
       print "\n"
+      
       updated_custom_json = JSON.pretty_generate(custom_json, opts = {:space_before => '\n\t'})
       p "Formatted and updated custom JSON: "
       p updated_custom_json
       print "\n"
+      
       stack_settings[:custom_json] = updated_custom_json
       p "Updated stack settings: "
       p stack_settings
@@ -58,6 +58,23 @@ module UarBuild
       updated_stack_settings = { :stack_id => stack_id, :custom_json => updated_custom_json }
 
       @opworks_client.update_stack(updated_stack_settings)
+    end
+
+    def get_app_info(stack_id, app_name)
+      puts "Desired Stack ID: #{stack_id}"
+      puts "Desired Application Name: #{app_name}"
+      apps_in_stack = @opworks_client.describe_apps({:stack_id => stack_id})
+      #PP.pp(apps_in_stack[:apps][0][:app_id])
+
+      desired_app = apps_in_stack[:apps].select { |a| a[:name] == app_name }
+      #PP.pp(desired_app)
+      raise "Unexpected number of apps!" if desired_app.length != 1
+
+      desired_app
+    end
+
+    def deploy_app(stack_id, app_id, command)
+      @opworks_client.create_deployment( { :stack_id => stack_id, :app_id => app_id, :command => command })
     end
   end
 end
